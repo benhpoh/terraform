@@ -50,3 +50,13 @@ variable "backend_http_settings" {
   type        = list(any)
   description = "A list of objects containing the following keys: cookie_based_affinity ('Enabled' / 'Disabled'), name (string), port (number), path (string)"
 }
+
+variable "http_listeners" {
+  type        = list(any)
+  description = "A list of objects containing the following keys: name (string), frontend_ip_configuration_name (string), frontend_port_name (string), path (string)"
+}
+
+variable "request_routing_rule" {
+  type        = list(any)
+  description = "A list of objects containing the following keys: name (string), http_listener_name (string)"
+}

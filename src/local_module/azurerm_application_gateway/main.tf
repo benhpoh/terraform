@@ -2,6 +2,7 @@ resource "azurerm_application_gateway" "network" {
   name                = var.name
   resource_group_name = var.resource_group_name
   location            = var.location
+  enable_http2        = true
 
   sku {
     name     = var.sku_name
@@ -67,18 +68,24 @@ resource "azurerm_application_gateway" "network" {
     }
   }
 
-  http_listener {
-    name                           = local.listener_name
-    frontend_ip_configuration_name = local.frontend_ip_configuration_name
-    frontend_port_name             = local.frontend_port_name
-    protocol                       = "Http"
+  dynamic "http_listener" {
+    for_each = var.http_listeners
+    content {
+      name                           = http_listener.value.name
+      frontend_ip_configuration_name = http_listener.value.frontend_ip_configuration_name
+      frontend_port_name             = http_listener.value.frontend_port_name
+      protocol                       = "Https"
+    }
   }
 
-  request_routing_rule {
-    name                       = local.request_routing_rule_name
-    rule_type                  = "Basic"
-    http_listener_name         = local.listener_name
-    backend_address_pool_name  = local.backend_address_pool_name
-    backend_http_settings_name = local.http_setting_name
+  dynamic "request_routing_rule" {
+    for_each = var.request_routing_rules
+    content {
+      name                       = request_routing_rule.value.name
+      rule_type                  = "Basic"
+      http_listener_name         = request_routing_rule.value.http_listener_name
+      backend_address_pool_name  = "${var.name}-beap"
+      backend_http_settings_name = "${var.name}-httpsettings"
+    }
   }
 }
