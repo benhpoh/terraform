@@ -55,13 +55,16 @@ resource "azurerm_application_gateway" "network" {
     }
   }
 
-  backend_http_settings {
-    name                  = local.http_setting_name
-    cookie_based_affinity = "Disabled"
-    path                  = "/path1/"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 60
+  dynamic "backend_http_settings" {
+    for_each = var.backend_http_settings
+    content {
+      cookie_based_affinity = backend_http_settings.value.cookie_based_affinity
+      name                  = backend_http_settings.value.name
+      port                  = backend_http_settings.value.port
+      path                  = try(backend_http_settings.value.path, null)
+      protocol              = "Https"
+      request_timeout       = 60
+    }
   }
 
   http_listener {

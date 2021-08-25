@@ -45,3 +45,8 @@ variable "backend_address_pools" {
   type        = list(any)
   description = "A list of objects containing the following keys: name (string), fqdns (list of strings), ip_addresses (list of strings)"
 }
+
+variable "backend_http_settings" {
+  type        = list(any)
+  description = "A list of objects containing the following keys: cookie_based_affinity ('Enabled' / 'Disabled'), name (string), port (number), path (string)"
+}
