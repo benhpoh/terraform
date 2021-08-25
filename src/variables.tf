@@ -85,10 +85,3 @@ variable "cloud_partner_id" {
 variable "custom_tags" {
   type = map(string)
 }
-
-
-# App Service
-variable "as_application_1" {
-  description = "App Service application configurations"
-  type        = object({ name : string, type : string, primary : object({ ai_config : any, asp_config : any, as_config : any }), secondary : any })
-}

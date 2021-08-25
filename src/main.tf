@@ -18,36 +18,138 @@ module "azurerm_resource_group_primary" {
   tags = merge(local.tags, var.custom_tags)
 }
 
-module "azurerm_resource_group_secondary" {
-  source = "git::ssh://git@bitbucket.org/moula/infrastructure-as-code.git//azurerm/azurerm_resource_group"
-  count  = var.cloud_multi_region ? 1 : 0
-
-  name     = local.shared_primary_name
-  location = var.cloud_location_1.name
-
-  tags = merge(local.tags, var.custom_tags)
+resource "azurerm_virtual_network" "example" {
+  name                = "${local.shared_primary_name}-vnet"
+  resource_group_name = module.azurerm_resource_group_primary.name
+  location            = module.azurerm_resource_group_primary.location
+  address_space       = ["10.254.0.0/16"]
 }
 
-# module "azurerm_app_service_primary" {
-#   source = "git::ssh://git@bitbucket.org/moula/infrastructure-as-code.git//azurerm/azurerm_app_service"
+resource "azurerm_subnet" "frontend" {
+  name                 = "frontend"
+  resource_group_name  = module.azurerm_resource_group_primary.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.254.0.0/24"]
+}
 
-#   name                = "${var.client_project_id}-${var.cloud_location_1.alias}-${var.client_environment}"
+resource "azurerm_subnet" "backend" {
+  name                 = "backend"
+  resource_group_name  = module.azurerm_resource_group_primary.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.254.2.0/24"]
+}
+
+resource "azurerm_public_ip" "default" {
+  name                = "${local.shared_primary_name}-pip"
+  resource_group_name = module.azurerm_resource_group_primary.name
+  location            = module.azurerm_resource_group_primary.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  availability_zone   = "No-Zone"
+}
+
+resource "azurerm_application_gateway" "network" {
+  name                = "${local.shared_primary_name}-ag"
+  resource_group_name = module.azurerm_resource_group_primary.name
+  location            = module.azurerm_resource_group_primary.location
+  enable_http2        = true
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  frontend_port {
+    name = "HTTP"
+    port = 80
+  }
+
+  frontend_port {
+    name = "HTTPS"
+    port = 443
+  }
+
+  gateway_ip_configuration {
+    name      = "${local.shared_primary_name}-ag-gatewayconfig"
+    subnet_id = azurerm_subnet.frontend.id
+  }
+
+  frontend_ip_configuration {
+    name                 = "${local.shared_primary_name}-ag-feip"
+    public_ip_address_id = azurerm_public_ip.default.id
+  }
+
+  backend_address_pool {
+    name = "${local.shared_primary_name}-ag-bep"
+  }
+
+  backend_http_settings {
+    name                  = "${local.shared_primary_name}-ag-httpsettings"
+    cookie_based_affinity = "Disabled"
+    path                  = "/"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 60
+  }
+
+  http_listener {
+    name                           = "${local.shared_primary_name}-ag-listener"
+    frontend_ip_configuration_name = "${local.shared_primary_name}-ag-feip"
+    frontend_port_name             = "HTTP"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "${local.shared_primary_name}-ag-routingrule"
+    rule_type                  = "Basic"
+    http_listener_name         = "${local.shared_primary_name}-ag-listener"
+    backend_address_pool_name  = "${local.shared_primary_name}-ag-bep"
+    backend_http_settings_name = "${local.shared_primary_name}-ag-httpsettings"
+  }
+}
+
+
+# module "azurerm_application_gateway" {
+#   source = "./local_module/azurerm_application_gateway"
+
+#   name                = local.shared_primary_name
 #   resource_group_name = module.azurerm_resource_group_primary.name
 #   location            = module.azurerm_resource_group_primary.location
 
-#   ai_config  = var.as_application_1.primary.ai_config
-#   asp_config = var.as_application_1.primary.asp_config
-#   as_config  = var.as_application_1.primary.as_config
-#   as_app_settings = {
-#     "ASPNETCORE_ENVIRONMENT"   = var.client_environment
-#   }
-#   as_connection_strings = [
-#     {
-#       "name" : "xDbConnection",
-#       "value" : "@Microsoft.KeyVault(VaultName=x-kv;SecretName=x-dbconnection)",
-#       "type" : "SQLServer"
-#     },
-#   ] // leave as [] if no connection strings required.
+#   sku_name     = "Standard_v2"
+#   sku_tier     = "Standard_v2"
+#   sku_capacity = 2
 
-#   tags = merge(local.tags, var.custom_tags)
+#   gateway_ip_configurations = [{
+#     name      = "${local.shared_primary_name}-ag-gatewayconfig"
+#     subnet_id = azurerm_subnet.frontend.id
+#   }]
+
+#   frontend_ip_configurations = [{
+#     name                 = "${local.shared_primary_name}-ag-feip"
+#     public_ip_address_id = azurerm_public_ip.default.id
+#   }]
+
+#   backend_address_pools {
+#     name = "${local.shared_primary_name}-ag-bep"
+#   }
+
+#   backend_http_settings {
+#     name                  = "${local.shared_primary_name}-ag-httpsettings"
+#     cookie_based_affinity = "Disabled"
+#     path                  = "/"
+#     port                  = 80
+#   }
+
+#   http_listeners = [{
+#     name                           = "${local.shared_primary_name}-ag-listener"
+#     frontend_ip_configuration_name = "${local.shared_primary_name}-ag-feip"
+#     frontend_port_name             = "HTTP"
+#   }]
+
+#   request_routing_rules = [{
+#     name               = "${local.shared_primary_name}-ag-routingrule"
+#     http_listener_name = "${local.shared_primary_name}-ag-listener"
+#   }]
 # }

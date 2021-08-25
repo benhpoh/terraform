@@ -38,7 +38,7 @@ variable "gateway_ip_configurations" {
 
 variable "frontend_ip_configurations" {
   type        = list(any)
-  description = "A list of objects containing the following keys: name, subnet_id, private_ip_address, public_ip_address_id, public_ip_address_allocation"
+  description = "A list of objects containing the following keys: name, subnet_id, private_ip_address, public_ip_address_id, private_ip_address_allocation"
 }
 
 variable "backend_address_pools" {
@@ -56,7 +56,7 @@ variable "http_listeners" {
   description = "A list of objects containing the following keys: name (string), frontend_ip_configuration_name (string), frontend_port_name (string), path (string)"
 }
 
-variable "request_routing_rule" {
+variable "request_routing_rules" {
   type        = list(any)
   description = "A list of objects containing the following keys: name (string), http_listener_name (string)"
 }
