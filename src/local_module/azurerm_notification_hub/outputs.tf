@@ -11,8 +11,9 @@ output "notification_hub_ids" {
 output "notification_hub_auth_rule_connstrings" {
   description = "Connection strings for notification hub auth rules"
   value = { for notification_hub in azurerm_notification_hub.default : notification_hub.name => {
-    send : azurerm_notification_hub_authorization_rule.send[notification_hub.name].primary_access_key,
-    listen : azurerm_notification_hub_authorization_rule.listen[notification_hub.name].primary_access_key,
-    sendlisten : azurerm_notification_hub_authorization_rule.sendlisten[notification_hub.name].primary_access_key,
+    send : "Endpoint=sb://${azurerm_notification_hub_namespace.default.name}.servicebus.windows.net/;SharedAccessKeyName=${notification_hub.name}-listen;SharedAccessKey=${azurerm_notification_hub_authorization_rule.listen[notification_hub.name].primary_access_key}",
+    listen : "Endpoint=sb://${azurerm_notification_hub_namespace.default.name}.servicebus.windows.net/;SharedAccessKeyName=${notification_hub.name}-listen;SharedAccessKey=${azurerm_notification_hub_authorization_rule.listen[notification_hub.name].primary_access_key}",
+    sendlisten : "Endpoint=sb://${azurerm_notification_hub_namespace.default.name}.servicebus.windows.net/;SharedAccessKeyName=${notification_hub.name}-sendlisten;SharedAccessKey=${azurerm_notification_hub_authorization_rule.sendlisten[notification_hub.name].primary_access_key}",
   } }
 }
+
